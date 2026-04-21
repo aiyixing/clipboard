@@ -16,11 +16,12 @@ pub struct HistoryItem {
     pub id: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AppState {
     pub is_monitoring: std::sync::atomic::AtomicBool,
     pub preview_cleared: std::sync::atomic::AtomicBool,
     pub history: std::sync::Mutex<Vec<HistoryItem>>,
+    pub current_content: std::sync::Mutex<Option<ClipboardContent>>,
 }
 
 impl Default for AppState {
@@ -29,6 +30,7 @@ impl Default for AppState {
             is_monitoring: std::sync::atomic::AtomicBool::new(true),
             preview_cleared: std::sync::atomic::AtomicBool::new(false),
             history: std::sync::Mutex::new(Vec::new()),
+            current_content: std::sync::Mutex::new(None),
         }
     }
 }

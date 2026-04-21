@@ -9,7 +9,7 @@ pub struct CommandResult<T> {
 }
 
 #[tauri::command]
-pub fn get_clipboard_content() -> CommandResult<Option<ClipboardContent>> {
+pub fn get_clipboard_content() -> CommandResult<ClipboardContent> {
     let state = get_app_state();
     
     if state.preview_cleared.load(std::sync::atomic::Ordering::Relaxed) {
@@ -20,11 +20,11 @@ pub fn get_clipboard_content() -> CommandResult<Option<ClipboardContent>> {
         };
     }
     
-    let content = clipboard::monitor::get_current_clipboard();
+    let current = state.current_content.lock().unwrap();
     
     CommandResult {
         success: true,
-        data: content,
+        data: current.clone(),
         error: None,
     }
 }
@@ -48,6 +48,10 @@ pub fn get_history(count: Option<usize>) -> CommandResult<Vec<HistoryItem>> {
 pub fn clear_preview() -> CommandResult<()> {
     let state = get_app_state();
     state.preview_cleared.store(true, std::sync::atomic::Ordering::Relaxed);
+    
+    // 同时清空当前内容
+    let mut current = state.current_content.lock().unwrap();
+    *current = None;
     
     CommandResult {
         success: true,

@@ -1,7 +1,8 @@
 use crate::{ClipboardContent, HistoryItem, get_app_state, hooks};
+use crate::clipboard::storage;
 use chrono::Local;
 use std::time::Duration;
-use tauri::Manager;
+use tauri::Emitter;
 
 const MONITOR_INTERVAL: u64 = 500;
 const MAX_HISTORY_ITEMS: usize = 100;
@@ -113,7 +114,7 @@ fn update_history(content: ClipboardContent) {
     
     let item = HistoryItem {
         timestamp,
-        content,
+        content: content.clone(),
         id,
     };
     
@@ -123,6 +124,10 @@ fn update_history(content: ClipboardContent) {
     if history.len() > MAX_HISTORY_ITEMS {
         history.truncate(MAX_HISTORY_ITEMS);
     }
+    
+    // 同时更新当前内容
+    let mut current = state.current_content.lock().unwrap();
+    *current = Some(content);
 }
 
 pub fn get_current_clipboard() -> Option<ClipboardContent> {
