@@ -2,13 +2,13 @@ use crate::ClipboardContent;
 use chrono::Local;
 use dirs::data_dir;
 use regex::Regex;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::PathBuf;
 
 lazy_static::lazy_static! {
     static ref URL_REGEX: Regex = Regex::new(
-        r"https?://[^\s<>\"{}|\\^[\]]+"
+        "https?://[^\\s<>\"{}|\\\\^\\[\\]]+"
     ).unwrap();
 }
 
@@ -16,7 +16,6 @@ fn get_app_data_dir() -> PathBuf {
     let mut path = data_dir().expect("Failed to get data directory");
     path.push("ClipboardMonitor");
     
-    // 确保目录存在
     if !path.exists() {
         fs::create_dir_all(&path).expect("Failed to create app data directory");
     }
@@ -69,12 +68,14 @@ pub fn save_content(content: &ClipboardContent) -> io::Result<()> {
     
     match content {
         ClipboardContent::Text(text) => {
-            writeln!(file, "\n## {}", timestamp)?;
+            writeln!(file, "")?;
+            writeln!(file, "## {}", timestamp)?;
             writeln!(file, "{}", text)?;
             writeln!(file, "---")?;
         }
         ClipboardContent::Image(filename) => {
-            writeln!(file, "\n## {}", timestamp)?;
+            writeln!(file, "")?;
+            writeln!(file, "## {}", timestamp)?;
             writeln!(file, "![Image](images/{})", filename)?;
             writeln!(file, "---")?;
         }
@@ -87,7 +88,6 @@ pub fn save_image(image: &arboard::ImageData, filename: &str) -> io::Result<()> 
     let images_dir = get_images_dir();
     let image_path = images_dir.join(filename);
     
-    // 转换 arboard::ImageData 为 image::DynamicImage
     let rgba_image = image::RgbaImage::from_raw(
         image.width as u32,
         image.height as u32,
@@ -96,7 +96,6 @@ pub fn save_image(image: &arboard::ImageData, filename: &str) -> io::Result<()> 
     
     let dynamic_image = image::DynamicImage::ImageRgba8(rgba_image);
     
-    // 保存为 PNG
     dynamic_image.save(&image_path)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to save image: {}", e)))?;
     
@@ -114,7 +113,6 @@ pub fn extract_and_save_links(text: &str) -> io::Result<()> {
     
     let links_file = get_links_file();
     
-    // 读取现有链接用于去重
     let existing_links: std::collections::HashSet<String> = if links_file.exists() {
         let content = fs::read_to_string(&links_file)?;
         content.lines().map(|s| s.to_string()).collect()

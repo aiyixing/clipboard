@@ -24,7 +24,7 @@ pub fn get_clipboard_content() -> CommandResult<Option<ClipboardContent>> {
     
     CommandResult {
         success: true,
-        data: content,
+        data: Some(content),
         error: None,
     }
 }
