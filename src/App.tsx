@@ -27,7 +27,7 @@ function App() {
   const [currentContent, setCurrentContent] = useState<ClipboardContent | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(true);
-  const [isPreviewCleared, setIsPreviewCleared] = useState(false);
+  const [copyCount, setCopyCount] = useState(0);
 
   const loadHistory = useCallback(async () => {
     try {
@@ -52,11 +52,6 @@ function App() {
   }, []);
 
   const loadCurrentContent = useCallback(async () => {
-    if (isPreviewCleared) {
-      setCurrentContent(null);
-      return;
-    }
-    
     try {
       const result: CommandResult<ClipboardContent | null> = await invoke('get_clipboard_content');
       if (result.success) {
@@ -65,7 +60,7 @@ function App() {
     } catch (error) {
       console.error('Failed to get clipboard content:', error);
     }
-  }, [isPreviewCleared]);
+  }, []);
 
   useEffect(() => {
     loadHistory();
@@ -73,9 +68,7 @@ function App() {
     loadCurrentContent();
 
     const unlistenClipboard = listen<ClipboardContent>('clipboard-changed', (event) => {
-      if (!isPreviewCleared) {
-        setCurrentContent(event.payload);
-      }
+      setCurrentContent(event.payload);
       loadHistory();
     });
 
@@ -87,19 +80,7 @@ function App() {
       unlistenClipboard.then((fn) => fn());
       unlistenStatus.then((fn) => fn());
     };
-  }, [loadHistory, loadMonitoringStatus, loadCurrentContent, isPreviewCleared]);
-
-  const handleClearPreview = async () => {
-    try {
-      const result: CommandResult<void> = await invoke('clear_preview');
-      if (result.success) {
-        setIsPreviewCleared(true);
-        setCurrentContent(null);
-      }
-    } catch (error) {
-      console.error('Failed to clear preview:', error);
-    }
-  };
+  }, [loadHistory, loadMonitoringStatus, loadCurrentContent]);
 
   const handleToggleMonitoring = async () => {
     try {
@@ -123,6 +104,21 @@ function App() {
     }
   };
 
+  const handleCopyToClipboard = async () => {
+    const newCount = copyCount + 1;
+    const textToCopy = `测试文本 ${newCount} - ${new Date().toLocaleTimeString()}`;
+    
+    try {
+      const result: CommandResult<void> = await invoke('copy_to_clipboard', { text: textToCopy });
+      if (result.success) {
+        setCopyCount(newCount);
+        console.log(`已复制: ${textToCopy}`);
+      }
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
   return (
     <div className="app-container">
       <TitleBar />
@@ -133,10 +129,10 @@ function App() {
           <div className="section-header">
             <span className="section-title">当前剪贴板内容</span>
             <button 
-              className="btn btn-secondary"
-              onClick={handleClearPreview}
+              className="btn btn-primary"
+              onClick={handleCopyToClipboard}
             >
-              清空预览
+              复制测试文本 (点击: {copyCount})
             </button>
           </div>
           <Preview content={currentContent} />

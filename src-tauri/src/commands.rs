@@ -1,5 +1,6 @@
 use crate::{ClipboardContent, HistoryItem, get_app_state, clipboard, clipboard::storage};
 use serde::Serialize;
+use clipboard_win::{set_clipboard, formats::Unicode};
 
 #[derive(Serialize)]
 pub struct CommandResult<T> {
@@ -89,6 +90,22 @@ pub fn get_monitoring_status() -> CommandResult<bool> {
 #[tauri::command]
 pub fn open_data_directory() -> CommandResult<()> {
     match storage::open_data_directory() {
+        Ok(_) => CommandResult {
+            success: true,
+            data: Some(()),
+            error: None,
+        },
+        Err(e) => CommandResult {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        },
+    }
+}
+
+#[tauri::command]
+pub fn copy_to_clipboard(text: String) -> CommandResult<()> {
+    match set_clipboard(Unicode, text.as_str()) {
         Ok(_) => CommandResult {
             success: true,
             data: Some(()),

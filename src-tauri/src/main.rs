@@ -36,6 +36,7 @@ fn main() {
             commands::toggle_monitoring,
             commands::get_monitoring_status,
             commands::open_data_directory,
+            commands::copy_to_clipboard,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
