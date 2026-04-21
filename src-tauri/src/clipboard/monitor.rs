@@ -1,7 +1,8 @@
 use crate::{ClipboardContent, HistoryItem, get_app_state, hooks};
+use crate::clipboard::storage;
 use chrono::Local;
 use std::time::Duration;
-use tauri::Manager;
+use tauri::Emitter;
 
 const MONITOR_INTERVAL: u64 = 500;
 const MAX_HISTORY_ITEMS: usize = 100;
