@@ -1,5 +1,6 @@
 use crate::{ClipboardContent, HistoryItem, get_app_state, clipboard, clipboard::storage};
 use serde::Serialize;
+use clipboard_win::{set_clipboard, formats::Unicode};
 
 #[derive(Serialize)]
 pub struct CommandResult<T> {
@@ -9,7 +10,7 @@ pub struct CommandResult<T> {
 }
 
 #[tauri::command]
-pub fn get_clipboard_content() -> CommandResult<Option<ClipboardContent>> {
+pub fn get_clipboard_content() -> CommandResult<ClipboardContent> {
     let state = get_app_state();
     
     if state.preview_cleared.load(std::sync::atomic::Ordering::Relaxed) {
@@ -20,11 +21,11 @@ pub fn get_clipboard_content() -> CommandResult<Option<ClipboardContent>> {
         };
     }
     
-    let content = clipboard::monitor::get_current_clipboard();
+    let current = state.current_content.lock().unwrap();
     
     CommandResult {
         success: true,
-        data: content,
+        data: current.clone(),
         error: None,
     }
 }
@@ -48,6 +49,10 @@ pub fn get_history(count: Option<usize>) -> CommandResult<Vec<HistoryItem>> {
 pub fn clear_preview() -> CommandResult<()> {
     let state = get_app_state();
     state.preview_cleared.store(true, std::sync::atomic::Ordering::Relaxed);
+    
+    // 同时清空当前内容
+    let mut current = state.current_content.lock().unwrap();
+    *current = None;
     
     CommandResult {
         success: true,
@@ -85,6 +90,22 @@ pub fn get_monitoring_status() -> CommandResult<bool> {
 #[tauri::command]
 pub fn open_data_directory() -> CommandResult<()> {
     match storage::open_data_directory() {
+        Ok(_) => CommandResult {
+            success: true,
+            data: Some(()),
+            error: None,
+        },
+        Err(e) => CommandResult {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        },
+    }
+}
+
+#[tauri::command]
+pub fn copy_to_clipboard(text: String) -> CommandResult<()> {
+    match set_clipboard(Unicode, text.as_str()) {
         Ok(_) => CommandResult {
             success: true,
             data: Some(()),
