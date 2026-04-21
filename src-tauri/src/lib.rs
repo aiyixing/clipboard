@@ -16,7 +16,7 @@ pub struct HistoryItem {
     pub id: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AppState {
     pub is_monitoring: std::sync::atomic::AtomicBool,
     pub preview_cleared: std::sync::atomic::AtomicBool,
