@@ -19,8 +19,11 @@ fn main() {
             
             // 启动剪贴板监听
             let app_handle_clone = app_handle.clone();
-            tokio::spawn(async move {
-                clipboard::start_monitor(app_handle_clone).await;
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+                rt.block_on(async {
+                    clipboard::start_monitor(app_handle_clone).await;
+                });
             });
             
             Ok(())
