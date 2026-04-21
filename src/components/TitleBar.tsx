@@ -1,12 +1,14 @@
-import { appWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 function TitleBar() {
   const handleMinimize = async () => {
-    await appWindow.minimize();
+    const window = getCurrentWindow();
+    await window.minimize();
   };
 
   const handleClose = async () => {
-    await appWindow.hide();
+    const window = getCurrentWindow();
+    await window.hide();
   };
 
   return (
