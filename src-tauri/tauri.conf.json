@@ -13,13 +13,13 @@
       {
         "title": "Clipboard Monitor",
         "width": 480,
-        "height": 640,
-        "resizable": false,
+        "height": 700,
+        "resizable": true,
         "center": true,
         "decorations": false,
         "alwaysOnTop": false,
         "skipTaskbar": false,
-        "visible": false
+        "visible": true
       }
     ],
     "security": {

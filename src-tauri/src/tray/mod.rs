@@ -1,5 +1,5 @@
 use crate::get_app_state;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri::tray::TrayIconBuilder;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 
@@ -23,8 +23,7 @@ pub fn init_tray(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error
         .item(&quit_item)
         .build()?;
     
-    let _tray = TrayIconBuilder::new()
-        .id("main")
+    let _tray = TrayIconBuilder::with_id("main")
         .icon(app_handle.default_window_icon().unwrap().clone())
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -42,7 +41,7 @@ pub fn init_tray(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error
 }
 
 fn show_main_window(app_handle: &tauri::AppHandle) {
-    if let Some(window) = app_handle.get_window("main") {
+    if let Some(window) = app_handle.get_webview_window("main") {
         window.show().ok();
         window.set_focus().ok();
     }
@@ -53,17 +52,6 @@ fn toggle_monitoring(app_handle: &tauri::AppHandle) {
     let current = state.is_monitoring.load(std::sync::atomic::Ordering::Relaxed);
     state.is_monitoring.store(!current, std::sync::atomic::Ordering::Relaxed);
     
-    // 更新托盘菜单
-    if let Some(tray) = app_handle.tray_by_id("main") {
-        let new_text = if current { "恢复监听" } else { "暂停监听" };
-        if let Some(menu) = tray.menu() {
-            if let Ok(item) = menu.get("toggle") {
-                let _ = item.set_text(new_text);
-            }
-        }
-    }
-    
-    // 通知前端
     let _ = app_handle.emit("monitoring-status-changed", !current);
 }
 
