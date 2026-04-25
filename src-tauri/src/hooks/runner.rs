@@ -4,7 +4,13 @@ use std::io;
 use std::path::PathBuf;
 
 pub fn execute_hooks(content: &ClipboardContent) -> io::Result<()> {
-    let hooks_dir = storage::get_hooks_path();
+    let hooks_dir = match storage::get_hooks_path() {
+        Ok(dir) => dir,
+        Err(e) => {
+            log::error!("Failed to get hooks directory: {}", e);
+            return Ok(());
+        }
+    };
     
     if !hooks_dir.exists() {
         return Ok(());
@@ -39,8 +45,10 @@ fn execute_single_hook(script_path: &PathBuf, content: &ClipboardContent) -> io:
     let (content_str, content_type, image_path) = match content {
         ClipboardContent::Text(text) => (text.clone(), "text".to_string(), String::new()),
         ClipboardContent::Image(filename) => {
-            let images_dir = storage::get_images_path();
-            let full_path = images_dir.join(filename);
+            let full_path = match storage::get_images_path() {
+                Ok(images_dir) => images_dir.join(filename),
+                Err(_) => PathBuf::from(filename),
+            };
             (
                 String::new(),
                 "image".to_string(),

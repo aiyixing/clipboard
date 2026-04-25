@@ -1,6 +1,5 @@
-use crate::{ClipboardContent, HistoryItem, get_app_state, clipboard, clipboard::storage};
+use crate::{ClipboardContent, HistoryItem, get_app_state, clipboard::storage};
 use serde::Serialize;
-use clipboard_win::{set_clipboard, formats::Unicode};
 
 #[derive(Serialize)]
 pub struct CommandResult<T> {
@@ -11,21 +10,16 @@ pub struct CommandResult<T> {
 
 #[tauri::command]
 pub fn get_clipboard_content() -> CommandResult<ClipboardContent> {
-    let state = get_app_state();
+    log::info!("get_clipboard_content called - reading real-time from clipboard");
     
-    if state.preview_cleared.load(std::sync::atomic::Ordering::Relaxed) {
-        return CommandResult {
-            success: true,
-            data: None,
-            error: None,
-        };
-    }
+    // 实时读取剪贴板，而不是返回缓存的内容
+    let content = crate::clipboard::monitor::get_current_clipboard();
     
-    let current = state.current_content.lock().unwrap();
+    log::info!("Clipboard content: {:?}", content.is_some());
     
     CommandResult {
         success: true,
-        data: current.clone(),
+        data: content,
         error: None,
     }
 }
@@ -37,6 +31,8 @@ pub fn get_history(count: Option<usize>) -> CommandResult<Vec<HistoryItem>> {
     
     let count = count.unwrap_or(20).min(history.len());
     let items: Vec<HistoryItem> = history.iter().take(count).cloned().collect();
+    
+    log::info!("get_history called, returning {} items", items.len());
     
     CommandResult {
         success: true,
@@ -54,6 +50,8 @@ pub fn clear_preview() -> CommandResult<()> {
     let mut current = state.current_content.lock().unwrap();
     *current = None;
     
+    log::info!("clear_preview called");
+    
     CommandResult {
         success: true,
         data: Some(()),
@@ -68,6 +66,8 @@ pub fn toggle_monitoring() -> CommandResult<bool> {
     let new_state = !current;
     state.is_monitoring.store(new_state, std::sync::atomic::Ordering::Relaxed);
     
+    log::info!("toggle_monitoring called, new state: {}", new_state);
+    
     CommandResult {
         success: true,
         data: Some(new_state),
@@ -80,6 +80,8 @@ pub fn get_monitoring_status() -> CommandResult<bool> {
     let state = get_app_state();
     let is_monitoring = state.is_monitoring.load(std::sync::atomic::Ordering::Relaxed);
     
+    log::info!("get_monitoring_status called: {}", is_monitoring);
+    
     CommandResult {
         success: true,
         data: Some(is_monitoring),
@@ -89,6 +91,8 @@ pub fn get_monitoring_status() -> CommandResult<bool> {
 
 #[tauri::command]
 pub fn open_data_directory() -> CommandResult<()> {
+    log::info!("open_data_directory called");
+    
     match storage::open_data_directory() {
         Ok(_) => CommandResult {
             success: true,
@@ -105,16 +109,24 @@ pub fn open_data_directory() -> CommandResult<()> {
 
 #[tauri::command]
 pub fn copy_to_clipboard(text: String) -> CommandResult<()> {
-    match set_clipboard(Unicode, text.as_str()) {
-        Ok(_) => CommandResult {
-            success: true,
-            data: Some(()),
-            error: None,
-        },
-        Err(e) => CommandResult {
-            success: false,
-            data: None,
-            error: Some(e.to_string()),
-        },
+    log::info!("copy_to_clipboard called with text: {}", text);
+    
+    match clipboard_win::set_clipboard(clipboard_win::formats::Unicode, text.as_str()) {
+        Ok(_) => {
+            log::info!("Successfully copied text to clipboard using clipboard-win");
+            CommandResult {
+                success: true,
+                data: Some(()),
+                error: None,
+            }
+        }
+        Err(e) => {
+            log::error!("Failed to set text using clipboard-win: {}", e);
+            CommandResult {
+                success: false,
+                data: None,
+                error: Some(e.to_string()),
+            }
+        }
     }
 }

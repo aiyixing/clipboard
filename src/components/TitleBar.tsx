@@ -1,14 +1,15 @@
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 
 function TitleBar() {
   const handleMinimize = async () => {
-    const window = getCurrentWindow();
-    await window.minimize();
+    const webviewWindow = getCurrentWebviewWindow();
+    await webviewWindow.minimize();
   };
 
   const handleClose = async () => {
-    const window = getCurrentWindow();
-    await window.hide();
+    const webviewWindow = getCurrentWebviewWindow();
+    console.log('Closing window - hiding to tray');
+    await webviewWindow.hide();
   };
 
   return (

@@ -1,6 +1,5 @@
 use crate::ClipboardContent;
 use chrono::Local;
-use dirs::data_dir;
 use regex::Regex;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
@@ -12,53 +11,97 @@ lazy_static::lazy_static! {
     ).unwrap();
 }
 
-fn get_app_data_dir() -> PathBuf {
-    let mut path = data_dir().expect("Failed to get data directory");
-    path.push("ClipboardMonitor");
+fn get_app_data_dir() -> io::Result<PathBuf> {
+    // 尝试多个路径，直到找到一个可用的
+    let possible_paths = vec![
+        // 1. 尝试文档目录
+        dirs::document_dir().map(|p| p.join("ClipboardMonitor")),
+        // 2. 尝试用户主目录
+        dirs::home_dir().map(|p| p.join("ClipboardMonitor")),
+        // 3. 尝试当前工作目录
+        std::env::current_dir().map(|p| p.join("data").join("ClipboardMonitor")).ok(),
+    ];
     
-    if !path.exists() {
-        fs::create_dir_all(&path).expect("Failed to create app data directory");
+    for path in possible_paths.into_iter().flatten() {
+        log::info!("Trying app data directory: {:?}", path);
+        
+        if !path.exists() {
+            log::info!("Creating directory: {:?}", path);
+            match fs::create_dir_all(&path) {
+                Ok(_) => {
+                    log::info!("Directory created successfully: {:?}", path);
+                    return Ok(path);
+                }
+                Err(e) => {
+                    log::error!("Failed to create directory {:?}: {}", path, e);
+                    continue;
+                }
+            }
+        } else {
+            // 检查是否有写入权限
+            let test_file = path.join(".write_test");
+            match fs::write(&test_file, "test") {
+                Ok(_) => {
+                    let _ = fs::remove_file(&test_file);
+                    log::info!("Directory already exists and is writable: {:?}", path);
+                    return Ok(path);
+                }
+                Err(e) => {
+                    log::error!("Directory exists but is not writable {:?}: {}", path, e);
+                    continue;
+                }
+            }
+        }
     }
     
-    path
+    // 如果所有路径都失败了，返回一个错误
+    Err(io::Error::new(
+        io::ErrorKind::PermissionDenied,
+        "Failed to find a writable directory for app data"
+    ))
 }
 
-fn get_images_dir() -> PathBuf {
-    let mut path = get_app_data_dir();
-    path.push("images");
+pub fn get_images_dir() -> io::Result<PathBuf> {
+    let path = get_app_data_dir()?.join("images");
     
     if !path.exists() {
-        fs::create_dir_all(&path).expect("Failed to create images directory");
+        fs::create_dir_all(&path)?;
     }
     
-    path
+    Ok(path)
 }
 
-fn get_hooks_dir() -> PathBuf {
-    let mut path = get_app_data_dir();
-    path.push("hooks");
+fn get_hooks_dir() -> io::Result<PathBuf> {
+    let path = get_app_data_dir()?.join("hooks");
     
     if !path.exists() {
-        fs::create_dir_all(&path).expect("Failed to create hooks directory");
+        fs::create_dir_all(&path)?;
     }
     
-    path
+    Ok(path)
 }
 
-fn get_history_file() -> PathBuf {
-    let mut path = get_app_data_dir();
-    path.push("clipboard_history.md");
-    path
+fn get_history_file() -> io::Result<PathBuf> {
+    Ok(get_app_data_dir()?.join("clipboard_history.md"))
 }
 
-fn get_links_file() -> PathBuf {
-    let mut path = get_app_data_dir();
-    path.push("links.txt");
-    path
+fn get_links_file() -> io::Result<PathBuf> {
+    Ok(get_app_data_dir()?.join("links.txt"))
 }
 
 pub fn save_content(content: &ClipboardContent) -> io::Result<()> {
-    let history_file = get_history_file();
+    log::info!("save_content called with: {:?}", content);
+    
+    let history_file = match get_history_file() {
+        Ok(f) => f,
+        Err(e) => {
+            log::error!("Failed to get history file: {}", e);
+            return Err(e);
+        }
+    };
+    
+    log::info!("Writing to: {:?}", history_file);
+    
     let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     
     let mut file = OpenOptions::new()
@@ -81,12 +124,17 @@ pub fn save_content(content: &ClipboardContent) -> io::Result<()> {
         }
     }
     
+    log::info!("Content saved successfully");
     Ok(())
 }
 
 pub fn save_image(image: &arboard::ImageData, filename: &str) -> io::Result<()> {
-    let images_dir = get_images_dir();
+    log::info!("save_image called");
+    
+    let images_dir = get_images_dir()?;
     let image_path = images_dir.join(filename);
+    
+    log::info!("Saving image to: {:?}", image_path);
     
     let rgba_image = image::RgbaImage::from_raw(
         image.width as u32,
@@ -99,6 +147,7 @@ pub fn save_image(image: &arboard::ImageData, filename: &str) -> io::Result<()> 
     dynamic_image.save(&image_path)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to save image: {}", e)))?;
     
+    log::info!("Image saved successfully");
     Ok(())
 }
 
@@ -111,7 +160,9 @@ pub fn extract_and_save_links(text: &str) -> io::Result<()> {
         return Ok(());
     }
     
-    let links_file = get_links_file();
+    log::info!("Found {} links", links.len());
+    
+    let links_file = get_links_file()?;
     
     let existing_links: std::collections::HashSet<String> = if links_file.exists() {
         let content = fs::read_to_string(&links_file)?;
@@ -135,19 +186,21 @@ pub fn extract_and_save_links(text: &str) -> io::Result<()> {
 }
 
 pub fn open_data_directory() -> io::Result<()> {
-    let path = get_app_data_dir();
+    let path = get_app_data_dir()?;
+    log::info!("Opening directory: {:?}", path);
+    
     open::that(&path)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to open directory: {}", e)))
 }
 
-pub fn get_app_data_path() -> PathBuf {
+pub fn get_app_data_path() -> io::Result<PathBuf> {
     get_app_data_dir()
 }
 
-pub fn get_images_path() -> PathBuf {
+pub fn get_images_path() -> io::Result<PathBuf> {
     get_images_dir()
 }
 
-pub fn get_hooks_path() -> PathBuf {
+pub fn get_hooks_path() -> io::Result<PathBuf> {
     get_hooks_dir()
 }

@@ -303,3 +303,170 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-accent);
 }
+
+/* Debug Section */
+.debug-section {
+  background-color: rgba(15, 52, 96, 0.3);
+  border: 1px solid var(--color-accent);
+  border-radius: 8px;
+  padding: var(--spacing-padding);
+}
+
+.debug-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.polling-count {
+  font-size: 12px;
+  color: #888;
+  font-family: var(--font-family-code);
+}
+
+.debug-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-block);
+  margin-top: var(--spacing-block);
+}
+
+.debug-panel {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+}
+
+.debug-panel-header {
+  padding: 8px 12px;
+  background-color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.clock-display {
+  padding: 20px;
+  text-align: center;
+  font-size: 32px;
+  font-family: var(--font-family-code);
+  color: var(--color-success);
+  text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+}
+
+.polling-display {
+  padding: 12px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.polling-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.polling-text {
+  font-family: var(--font-family-code);
+  font-size: 12px;
+  color: var(--color-text);
+  background-color: rgba(74, 222, 128, 0.1);
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--color-success);
+}
+
+.polling-image {
+  font-size: 14px;
+  color: var(--color-success);
+  font-family: var(--font-family-code);
+  background-color: rgba(74, 222, 128, 0.1);
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--color-success);
+}
+
+.polling-empty {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.random-texts {
+  padding: 8px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.random-text-item {
+  font-family: var(--font-family-code);
+  font-size: 11px;
+  color: var(--color-text);
+  padding: 4px 8px;
+  background-color: rgba(15, 52, 96, 0.5);
+  border-radius: 3px;
+  border-left: 3px solid var(--color-warning);
+}
+
+.random-empty {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+}
+
+.ui-logs {
+  padding: 8px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-item {
+  font-family: var(--font-family-code);
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 2px;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  gap: 6px;
+}
+
+.log-time {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.log-message {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logs-empty {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+}
